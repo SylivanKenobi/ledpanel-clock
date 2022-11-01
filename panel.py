@@ -16,6 +16,9 @@ class Panel:
         black = (0,0,0)
         self.pixels.fill(black)
         self.pixels.show()
+
+    def show(self):
+        self.pixels.show()
         
     def set_pixel(self, x, y, color):
         if (x < 0 or x >= self.width or y < 0 or y >= self.height):
@@ -29,22 +32,30 @@ class Panel:
             index = 255 - ((x+1) * self.height - (y+1))
 
         self.pixels.set_pixel(index, color)
-        self.pixels.show()
             
     def draw_char_at(self, x, y, char, font, color):
         char_offset = (ord(char) - ord(' ')) * font.height * (int(font.width / 8) + (1 if font.width % 8 else 0))
         
         offset = 0
-
+        width = 1
+        for w in font.data[char_offset+offset:char_offset+offset+font.height]:
+            try:
+                binary = "{0:b}".format(w).encode('UTF-8')
+                i = binary.rindex(b'1') + 2
+                if i > width:
+                    width = i
+            except Exception as e:
+                pass
+        
         for j in range(font.height):
-            for i in range(font.width):
+            for i in range(width):
                 if font.data[char_offset+offset] & (0x80 >> (i % 8)):
                     self.set_pixel(x + i, y + j, color)
                 if i % 8 == 7:
                     offset += 1
-            if font.width % 8 != 0:
+            if width % 8 != 0:
                 offset += 1                
-
+        return width
 
     def display_string_at(self, x, y, text, font, color):
         refcolumn = x
@@ -52,9 +63,9 @@ class Panel:
         # Send the string character by character on PANEL
         for index in range(len(text)):
             # Display one character on PANEL
-            self.draw_char_at(refcolumn, y, text[index], font, color)
+            width = self.draw_char_at(refcolumn, y, text[index], font, color)
             # Decrement the column position by 16
-            refcolumn += font.width
+            refcolumn += width
 
 
     def draw_line(self, x0, y0, x1, y1, color):
