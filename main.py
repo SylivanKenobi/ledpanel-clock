@@ -1,7 +1,7 @@
 import time
 import panel
 import font
-from neopixel import Neopixel
+from neopixel_panel import NeopixelPanel
 import colors
 import network
 import secrets
@@ -21,11 +21,7 @@ color = colors.AQUAMARINE4
 rp2.PIO(0).remove_program()
 
 numpix = 257
-pixels = Neopixel(numpix, 0, 28, "GRB")
-
-panel = panel.Panel(32, 8)
-panel.init()
-
+panel = NeopixelPanel(32, 8, 0, 28, "GRB")
 
 # t = time.localtime()
 # panel.display_string_at(0, 1, f'{t[3]}:{t[4]}', font, color)
