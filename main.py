@@ -20,7 +20,6 @@ color = colors.AQUAMARINE4
 # fix for https://github.com/blaz-r/pi_pico_neopixel/issues/9
 rp2.PIO(0).remove_program()
 
-numpix = 257
 panel = NeopixelPanel(32, 8, 0, 28, "GRB")
 
 # t = time.localtime()

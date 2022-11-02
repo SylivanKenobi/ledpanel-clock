@@ -49,8 +49,10 @@ def sk6812():
 class NeopixelPanel:
     # Missing params width and height
     def __init__(self, width, height, state_machine, pin, mode="RGB", delay=0.0001):
-        num_leds = width * height
-        self.pixels = array.array("I", [0 for _ in range(num_leds)])
+        self.width = width # x
+        self.height = height # y
+        self.num_leds = width * height
+        self.pixels = array.array("I", [0 for _ in range(self.num_leds)])
         self.mode = set(mode)   # set for better performance
         if 'W' in self.mode:
             # RGBW uses different PIO state machine configuration
@@ -63,7 +65,6 @@ class NeopixelPanel:
             self.shift = {'R': ((mode.index('R') ^ 3) - 1) * 8, 'G': ((mode.index('G') ^ 3) - 1) * 8,
                           'B': ((mode.index('B') ^ 3) - 1) * 8, 'W': 0}
         self.sm.active(1)
-        self.num_leds = num_leds
         self.delay = delay
         self.brightnessvalue = 255
 
@@ -106,14 +107,7 @@ class NeopixelPanel:
 
     # Set red, green and blue value of pixel on position <pixel_num>
     # Function accepts (r, g, b) / (r, g, b, w) tuple
-    def set_pixel(self, x, y, rgb_w):
-        if (x < 0 or x >= self.width or y < 0 or y >= self.height):
-            return
-        if (x % 2) == 1:
-            index = 255 - (x * self.height + y)
-        else:
-            index = 255 - ((x+1) * self.height - (y+1))
-        
+    def set_pixel(self, pixel_num, rgb_w):
         pos = self.shift
 
         red = round(rgb_w[0] * (self.brightness() / 255))
@@ -124,7 +118,16 @@ class NeopixelPanel:
         if len(rgb_w) == 4 and 'W' in self.mode:
             white = round(rgb_w[3] * (self.brightness() / 255))
 
-        self.pixels[index] = white << pos['W'] | blue << pos['B'] | red << pos['R'] | green << pos['G']
+        self.pixels[pixel_num] = white << pos['W'] | blue << pos['B'] | red << pos['R'] | green << pos['G']
+    
+    def set_pixel_panel(self, x, y, rgb_w):
+        if (x < 0 or x >= self.width or y < 0 or y >= self.height):
+            return
+        if (x % 2) == 1:
+            index = 255 - (x * self.height + y)
+        else:
+            index = 255 - ((x+1) * self.height - (y+1))
+        self.set_pixel(index, rgb_w)
 
     # Converts HSV color to rgb tuple and returns it
     # Function accepts integer values for <hue>, <saturation> and <value>
@@ -197,8 +200,8 @@ class NeopixelPanel:
     ##################################################################
     def clear(self):
         black = (0,0,0)
-        self.pixels.fill(black)
-        self.pixels.show()
+        self.fill(black)
+        self.show()
 
     def draw_char_at(self, x, y, char, font, color):
         char_offset = (ord(char) - ord(' ')) * font.height * (int(font.width / 8) + (1 if font.width % 8 else 0))
@@ -206,22 +209,19 @@ class NeopixelPanel:
         offset = 0
         width = 1
         for w in font.data[char_offset+offset:char_offset+offset+font.height]:
-            try:
-                binary = "{0:b}".format(w).encode('UTF-8')
-                i = binary.rindex(b'1') + 2
-                if i > width:
-                    width = i
-            except Exception as e:
-                pass
+            i = self.zfl("{0:b}".format(w),8).rfind('1') + 1
+            if i > width:
+                width = i
         
         for j in range(font.height):
             for i in range(width):
                 if font.data[char_offset+offset] & (0x80 >> (i % 8)):
-                    self.set_pixel(x + i, y + j, color)
+                    self.set_pixel_panel(x + i, y + j, color)
                 if i % 8 == 7:
                     offset += 1
             if width % 8 != 0:
-                offset += 1                
+                offset += 1
+        print(width)
         return width
 
     def display_string_at(self, x, y, text, font, color):
@@ -253,11 +253,11 @@ class NeopixelPanel:
 
     def draw_horizontal_line(self, x, y, width, color):
         for i in range(x, x + width):
-            self.set_pixel(i, y, color)
+            self.set_pixel_panel(i, y, color)
 
     def draw_vertical_line(self, x, y, height, color):
         for i in range(y, y + height):
-            self.set_pixel(x, i, color)
+            self.set_pixel_panel(x, i, color)
 
     def draw_rectangle(self, x0, y0, x1, y1, color):
         min_x = x0 if x1 > x0 else x1
@@ -285,10 +285,10 @@ class NeopixelPanel:
         if (x >= self.width or y >= self.height):
             return
         while True:
-            self.set_pixel(x - x_pos, y + y_pos, color)
-            self.set_pixel(x + x_pos, y + y_pos, color)
-            self.set_pixel(x + x_pos, y - y_pos, color)
-            self.set_pixel(x - x_pos, y - y_pos, color)
+            self.set_pixel_panel(x - x_pos, y + y_pos, color)
+            self.set_pixel_panel(x + x_pos, y + y_pos, color)
+            self.set_pixel_panel(x + x_pos, y - y_pos, color)
+            self.set_pixel_panel(x - x_pos, y - y_pos, color)
             e2 = err
             if (e2 <= y_pos):
                 y_pos += 1
@@ -309,10 +309,10 @@ class NeopixelPanel:
         if (x >= self.width or y >= self.height):
             return
         while True:
-            self.set_pixel(x - x_pos, y + y_pos, color)
-            self.set_pixel(x + x_pos, y + y_pos, color)
-            self.set_pixel(x + x_pos, y - y_pos, color)
-            self.set_pixel(x - x_pos, y - y_pos, color)
+            self.set_pixel_panel(x - x_pos, y + y_pos, color)
+            self.set_pixel_panel(x + x_pos, y + y_pos, color)
+            self.set_pixel_panel(x + x_pos, y - y_pos, color)
+            self.set_pixel_panel(x - x_pos, y - y_pos, color)
             self.draw_horizontal_line(x + x_pos, y + y_pos, 2 * (-x_pos) + 1, color)
             self.draw_horizontal_line(x + x_pos, y - y_pos, 2 * (-x_pos) + 1, color)
             e2 = err
@@ -326,3 +326,9 @@ class NeopixelPanel:
                 err += x_pos * 2 + 1
             if x_pos > 0:
                 break
+            
+    def zfl(self,s, width):
+        # Pads the provided string with leading 0's to suit the specified 'chrs' length
+        # Force # characters, fill with leading 0's
+        return '{:0>{w}}'.format(s, w=width)
+
