@@ -1,0 +1,3 @@
+[submodule "picoNeopixelMatrix"]
+	path = picoNeopixelMatrix
+	url = https://github.com/SylivanKenobi/pico-neopixel-matrix.git
