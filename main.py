@@ -4,51 +4,49 @@ from picoNeopixelMatrix.neopixel_panel import NeopixelPanel
 import colors
 import network
 import secrets
-from weather import Weather
-import struct
-import socket
+import ntptime
+import machine
 
-NTP_DELTA = 2208988800
-host = "pool.ntp.org"
-port = 123
 color = colors.AQUAMARINE4
-
 panel = NeopixelPanel(32, 8, 0, 0, "GRB")
 panel.brightness(80)
 
-def diplay_print(mes, error_color = color):
+def diplay_print(mes, mes_color = color):
     print(mes)
     if "ETIMEDOUT" in str(mes):
         mes = "time"
     elif "OSError" in str(mes):
         mes = "os"
     panel.clear()
-    panel.display_string_at(0, 1, f'{mes}', font, error_color)
+    panel.display_string_at(0, 1, f'{mes}', font, mes_color)
     panel.show()
+    
+def cettime():
+    year = time.localtime()[0]       #get current year
+    HHMarch   = time.mktime((year,3 ,(31-(int(5*year/4+4))%7),1,0,0,0,0,0)) #Time of March change to CEST
+    HHOctober = time.mktime((year,10,(31-(int(5*year/4+1))%7),1,0,0,0,0,0)) #Time of October change to CET
+    now=time.time()
+    if now < HHMarch :               # we are before last sunday of march
+        cet=time.localtime(now+3600) # CET:  UTC+1H
+    elif now < HHOctober :           # we are before last sunday of october
+        cet=time.localtime(now+7200) # CEST: UTC+2H
+    else:                            # we are after last sunday of october
+        cet=time.localtime(now+3600) # CET:  UTC+1H
+    return(cet)
 
-def set_time():
-    NTP_QUERY = bytearray(48)
-    NTP_QUERY[0] = 0x1B
-    addr = socket.getaddrinfo(host, port)[0][-1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(1)
-    res = s.sendto(NTP_QUERY, addr)
-    print("hi")
-    while True:
-        try:        
-            msg = s.recv(48)
-            print("hi2")
-        except OSError as e:
-            diplay_print(e)
-            time.sleep(5)
-            continue
-        break
-    s.close()
-    val = struct.unpack("!I", msg[40:44])[0]
-    t = val - NTP_DELTA    
-    tm = time.gmtime(t)
-    machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
-
+def settime():
+    error = True
+    ntptime.timeout = 2
+    while error:
+        try:
+            ntptime.settime()
+            error = False
+        except Exception as e:
+            time.sleep(1)
+            print(e)
+            print("Error setting time")
+            pass
+        
 def show_time(hour, minutes, color = color):
     if len(str(minutes)) < 2:
         minutes = f'0{minutes}'
@@ -59,26 +57,17 @@ def show_time(hour, minutes, color = color):
     panel.show()
 
 def connect_wifi():
+    network.hostname("mini_me")
     sta_if = network.WLAN(network.STA_IF)
     sta_if.active(True)
-    sta_if.active(False)
-    wlan = network.WLAN(network.AP_IF)
-    wlan.active(True)
-    wlan.disconnect()
-    wlan.connect(secrets.SSID, secrets.PASSWORD)
-    while not wlan.isconnected():
+    sta_if.disconnect()
+    sta_if.connect(secrets.SSID, secrets.PASSWORD)
+    while not sta_if.isconnected():
         print("connectig....")
-        panel.display_string_at(0, 1, "3", font, color)
         panel.show()
         time.sleep(0.3)
+    diplay_print("WI FI OK")
     print("connected")
-    diplay_print(wlan.ifconfig()[0])
-
-def party_panel():
-    for i in range(30):
-        panel.clear()
-        panel.fill(colors.MINT)
-        panel.show()
         
 def chasing_rainbow():
     x_positions = {
@@ -90,7 +79,7 @@ def chasing_rainbow():
         "purx": 25, "purx1": 32
     }
     rainbow_colors = [colors.RED1, colors.YELLOW1,colors.GREEN1,colors.CYAN2,colors.BLUE,colors.PURPLE1]
-    for i in range(6400):    
+    for i in range(128):    
         panel.draw_filled_rectangle(x_positions["redx"],0,x_positions["redx1"],8, colors.RED1)
         panel.draw_filled_rectangle(x_positions["yelx"],0,x_positions["yelx1"],8, colors.YELLOW1)
         panel.draw_filled_rectangle(x_positions["grex"],0,x_positions["grex1"],8, colors.GREEN1)
@@ -103,32 +92,28 @@ def chasing_rainbow():
                 x_positions[pos] = 0
             else:
                 x_positions[pos] = x_positions[pos] + 1
-#     colors for rainbow
-#     color_chase(RED, 0.1)  5
-#     color_chase(YELLOW, 0.1) 5
-#     color_chase(GREEN, 0.1) 5
-#     color_chase(CYAN, 0.1) 5
-#     color_chase(BLUE, 0.1) 5
-#     color_chase(PURPLE, 0.1) 6 Rows
 
+# Cleanup before the start
 # fix for https://github.com/blaz-r/pi_pico_neopixel/issues/9
 rp2.PIO(0).remove_program()
+panel.clear()
+panel.show()
 
-# Enable once I have a proper wifi router.
-# connect_wifi()
-# set_time()
+connect_wifi()
 
-t = time.localtime()
-
-chasing_rainbow()
-
+settime()
+t = cettime()
 show_time(t[3], t[4], color)
 
+print("start time loop")
 while True:
-    t2 = time.localtime()
+    t2 = cettime()
     if t[3] < t2[3] or t[4] < t2[4]:
         t = t2
-        if t[3] == "19" or t[4] == "0":
-            party_panel()
+        if t[3] == 19 and t[4] == 0:
+            print("chasing rainbow")
+            chasing_rainbow()
         show_time(t[3], t[4], color)
-        time.sleep(58)
+        seconds = 59 - cettime()[5]
+        time.sleep(seconds)
+
