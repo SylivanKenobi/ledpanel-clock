@@ -7,7 +7,9 @@ import secrets
 import ntptime
 import machine
 
-color = colors.AQUAMARINE4
+color = colors.WHITE
+rainbow_colors = [colors.RED1, colors.ORANGERED1, colors.YELLOW1, colors.GREEN1, colors.BLUE, colors.PURPLE1]
+
 panel = NeopixelPanel(32, 8, 0, 0, "GRB")
 panel.brightness(80)
 
@@ -46,14 +48,76 @@ def settime():
             print(e)
             print("Error setting time")
             pass
-        
+
+def show_devil(x,y):
+    eyes = colors.TEAL
+    ac_body = colors.TEAL
+    body = colors.GRAY19
+#     background = colors.BLACK
+#     # Background
+#     panel.draw_filled_rectangle(x, y, x+9, y+8, background)
+    
+    # Devil
+    panel.draw_horizontal_line(x+3,y,1, body)
+    panel.draw_horizontal_line(x+8,y,1, ac_body)
+    
+    panel.draw_horizontal_line(x+3,y+1,2, body)
+    panel.draw_horizontal_line(x+7,y+1,2, ac_body)
+    
+    panel.draw_horizontal_line(x+3,y+2,6, body)
+    
+    panel.draw_horizontal_line(x+3,y+3,2, body)
+    panel.draw_horizontal_line(x+5,y+3,1, eyes)
+    panel.draw_horizontal_line(x+6,y+3,1, body)
+    panel.draw_horizontal_line(x+7,y+3,1, eyes)
+    panel.draw_horizontal_line(x+8,y+3,1, body)
+    
+    panel.draw_horizontal_line(x,4,y+1, ac_body)
+    panel.draw_horizontal_line(x+3,y+4,6, body)
+    
+    panel.draw_horizontal_line(x+1,y+5,1, ac_body)
+    panel.draw_horizontal_line(x+3,y+5,6, body)
+    
+    panel.draw_horizontal_line(x+1,y+6,1, ac_body)
+    panel.draw_horizontal_line(x+3,y+6,6, body)
+    
+    panel.draw_horizontal_line(x+2,y+7,1, ac_body)
+    panel.draw_horizontal_line(x+4,y+7,1, body)
+    panel.draw_horizontal_line(x+7,y+7,1, body)
+
+
 def show_time(hour, minutes, color = color):
     if len(str(minutes)) < 2:
         minutes = f'0{minutes}'
     if len(str(hour)) < 2:
         hour = f'0{hour}'
     panel.clear()
-    panel.display_string_at(0, 1, f'{hour}:{minutes}', font, color)
+    panel.display_string_at(0, 0, f'{hour}:{minutes}', font, color)
+    
+    line_x = 0
+    line_y = 6
+    width = 4
+    panel.draw_horizontal_line(line_x, line_y, width, rainbow_colors[0])
+    panel.draw_horizontal_line(line_x, line_y+1, width, rainbow_colors[0])
+
+    panel.draw_horizontal_line(line_x+width, line_y, width, rainbow_colors[1])
+    panel.draw_horizontal_line(line_x+width, line_y+1, width, rainbow_colors[1])
+
+    panel.draw_horizontal_line(line_x+(width*2), line_y, width, rainbow_colors[2])
+    panel.draw_horizontal_line(line_x+(width*2), line_y+1, width, rainbow_colors[2])
+
+    panel.draw_horizontal_line(line_x+(width*3), line_y, width, rainbow_colors[3])
+    panel.draw_horizontal_line(line_x+(width*3), line_y+1, width, rainbow_colors[3])
+
+    panel.draw_horizontal_line(line_x+(width*4), line_y, width, rainbow_colors[4])
+    panel.draw_horizontal_line(line_x+(width*4), line_y+1, width, rainbow_colors[4])
+
+    panel.draw_horizontal_line(line_x+(width*5), line_y, width, rainbow_colors[5])
+    panel.draw_horizontal_line(line_x+(width*5), line_y+1, width, rainbow_colors[5])
+
+    
+    show_devil(23,0)
+    
     panel.show()
 
 def connect_wifi():
@@ -66,7 +130,7 @@ def connect_wifi():
         print("connectig....")
         panel.show()
         time.sleep(0.3)
-    diplay_print("WI FI OK")
+    diplay_print("WIFI OK")
     print("connected")
         
 def chasing_rainbow():
@@ -99,6 +163,9 @@ rp2.PIO(0).remove_program()
 panel.clear()
 panel.show()
 
+# diplay_print("6789")
+# time.sleep(60)
+
 connect_wifi()
 
 settime()
@@ -110,10 +177,11 @@ while True:
     t2 = cettime()
     if t[3] < t2[3] or t[4] < t2[4]:
         t = t2
-        if t[3] == 19 and t[4] == 0:
+        if t[3] == 20 and t[4] == 0:
             print("chasing rainbow")
             chasing_rainbow()
         show_time(t[3], t[4], color)
         seconds = 59 - cettime()[5]
         time.sleep(seconds)
+
 
