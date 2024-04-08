@@ -4,4 +4,7 @@ This clock uses an [NeoPixel 8x32](https://www.bastelgarage.ch/neopixel-flexmatr
 
 An example Project for the [Neopixel Panel library](https://github.com/SylivanKenobi/pico-neopixel-matrix)
 
-![clock show time at 12:45](./images/1245.JPG)
+![clock show time at 20:45](./images/2045.JPG)
+
+
+![clock not running](./images/off.JPG)
